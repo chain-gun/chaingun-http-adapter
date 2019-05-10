@@ -1,4 +1,4 @@
-import lmdb from 'node-lmdb'
+import 'isomorphic-fetch'
 
 export interface GunNode {
   _: {
@@ -11,51 +11,45 @@ export interface GunNode {
   [key: string]: any
 }
 
-export interface GunPut {
+export interface GunPutData {
   [soul: string]: GunNode
 }
 
-const DEFAULT_CONFIG = {
-  path: 'lmdb'
+export interface GunPut {
+  put: GunPutData
+  from?: any
 }
 
-export class GunLmdbClient {
+const DEFAULT_CONFIG = {
+  root: '/gun/nodes/'
+}
+
+export class GunHttpClient {
   Gun: any
   env: any
   dbi: any
+  config: typeof DEFAULT_CONFIG
 
-  constructor(Gun: any, lmdbConfig = DEFAULT_CONFIG) {
+  constructor(Gun: any, httpConfig = DEFAULT_CONFIG) {
     this.Gun = Gun
-    this.env = new lmdb.Env()
-    this.env.open(lmdbConfig)
-    this.dbi = this.env.openDbi({
-      name: 'gun-nodes',
-      create: true
-    })
+    this.config = { ...DEFAULT_CONFIG, ...httpConfig }
+  }
+
+  async getRaw(soul: string) {
+    const response = await fetch(`${this.config.root}${soul}`)
+    return response.text() || null
   }
 
   async get(soul: string) {
     if (!soul) return null
-    const txn = this.env.beginTxn()
-    try {
-      const data = this.deserialize(txn.getStringUnsafe(this.dbi, soul))
-      txn.commit()
-      return data
-    } catch (e) {
-      txn.abort()
-      throw e
-    }
-  }
 
-  async getRaw(soul: string) {
-    if (!soul) return null
-    const txn = this.env.beginTxn()
     try {
-      const data = txn.getString(this.dbi, soul)
-      txn.commit()
-      return data || ''
+      const response = await fetch(`${this.config.root}${soul}`)
+      if (response.status === 404) return null
+      if (response.status >= 400) throw new Error('Bad response from server')
+      return response.json() || null
     } catch (e) {
-      txn.abort()
+      console.error('gun-http get error', e.stack || e)
       throw e
     }
   }
@@ -78,41 +72,12 @@ export class GunLmdbClient {
     return data
   }
 
-  serialize(node: GunNode) {
-    return JSON.stringify(node)
-  }
-
-  deserialize(data: string) {
-    return JSON.parse(data)
-  }
-
   async writeNode(soul: string, nodeData: GunNode) {
     if (!soul) return
-    const txn = this.env.beginTxn()
-    const nodeDataMeta = (nodeData && nodeData['_']) || {}
-    const nodeDataState = nodeDataMeta['>'] || {}
-
-    try {
-      const existingData = txn.getStringUnsafe(this.dbi, soul)
-      const node = this.deserialize(existingData) || {}
-      const meta = (node['_'] = node['_'] || { '#': soul, '>': {} })
-      const state = (meta['>'] = meta['>'] || {})
-
-      for (let key in nodeData) {
-        if (key === '_' || !(key in nodeDataState)) continue
-        node[key] = nodeData[key]
-        state[key] = nodeDataState[key]
-      }
-
-      txn.putString(this.dbi, soul, this.serialize(node))
-      txn.commit()
-    } catch (e) {
-      txn.abort()
-      throw e
-    }
+    throw new Error('Write with gun-http not supported')
   }
 
-  async write(put: GunPut) {
+  async write(put: GunPutData) {
     if (!put) return
     for (let soul in put) await this.writeNode(soul, put[soul])
   }
@@ -124,5 +89,5 @@ export class GunLmdbClient {
 }
 
 export function createClient(Gun: any, options: any) {
-  return new GunLmdbClient(Gun, options)
+  return new GunHttpClient(Gun, options)
 }

@@ -1,4 +1,5 @@
-import { GunLmdbClient, GunPut } from './client'
+import { GunHttpClient, GunPut } from './client'
+import ReconnectingWebSocket from 'reconnecting-websocket'
 
 interface GunGet {
   '#': string
@@ -7,22 +8,45 @@ interface GunGet {
   }
 }
 
-export const attachToGun = (Gun: any, options?: any) =>
+export const attachToGun = (Gun: any, options?: any) => {
+  const { peers = [] } = options || {}
+
   Gun.on('create', function(this: any, db: any) {
-    const lmdb = (Gun.lmdb = db.lmdb = new GunLmdbClient(Gun, options))
+    const http = (Gun.http = db.http = new GunHttpClient(Gun, options))
+
+    function receive(msg: any) {
+      try {
+        db.on('in', JSON.parse(msg.data || msg))
+      } catch (e) {
+        console.error('Websocket error', e.stack || e)
+      }
+    }
+
+    const sockets = peers.map((url: string) => {
+      const ws = new ReconnectingWebSocket(url, [])
+      ws.addEventListener('message', receive)
+      return ws
+    })
 
     db.on('get', async function(this: any, request: GunGet) {
       this.to.next(request)
-      if (!request) return
+      if (!request) {
+        return
+      }
       const dedupId = request['#']
       const get = request.get
       const soul = get['#']
 
       try {
-        const result = await lmdb.get(soul)
+        const result = await http.get(soul)
         db.on('in', {
           '@': dedupId,
-          put: result ? { [soul]: result } : null,
+          put: result
+            ? {
+                [soul]: result
+              }
+            : null,
+          from: 'http',
           err: null
         })
       } catch (err) {
@@ -36,26 +60,17 @@ export const attachToGun = (Gun: any, options?: any) =>
     })
 
     db.on('put', async function(this: any, request: GunPut) {
-      if (!request) return this.to.next(request)
-      const dedupId = request['#']
-
-      try {
-        await lmdb.write(request.put)
-        db.on('in', {
-          '@': dedupId,
-          ok: true,
-          err: null
-        })
-      } catch (err) {
-        db.on('in', {
-          '@': dedupId,
-          ok: false,
-          err: err
-        })
-      }
-
       this.to.next(request)
+      if (!request || request.from === 'http') return
+      for (let i = 0; i < sockets.length; i++) {
+        try {
+          sockets[i].send(JSON.stringify(request))
+        } catch (e) {
+          console.error('WebSocket error', e.stack || e)
+        }
+      }
     })
 
     this.to.next(db)
   })
+}

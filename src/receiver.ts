@@ -1,11 +1,11 @@
-import { GunLmdbClient, GunNode } from './client'
+import { GunHttpClient, GunNode } from './client'
 
 export const respondToGets = (
   Gun: any,
   { disableRelay = true, skipValidation = true } = {},
   lmdbOpts = undefined
 ) => (db: any) => {
-  const lmdb = (Gun.lmdb = db.lmdb = new GunLmdbClient(Gun, lmdbOpts))
+  const lmdb = (Gun.lmdb = db.lmdb = new GunHttpClient(Gun, lmdbOpts))
 
   db.onIn(async function gunLmdbRespondToGets(msg: any) {
     const { from, json, fromCluster } = msg
@@ -29,17 +29,9 @@ export const respondToGets = (
         `"put": ${put}`,
         '}'
       ].join('')
-      /*
-      const json = {
-        '#': from.msgId(),
-        '@': dedupId,
-        put: result ? { [soul]: result } : null
-      }
-      */
 
       from.send({
         raw,
-        // json,
         ignoreLeeching: true,
         skipValidation: !rawResult || skipValidation
       })
@@ -61,10 +53,11 @@ export const respondToGets = (
   return db
 }
 
+/*
 export const acceptWrites = (Gun: any, { disableRelay = false } = {}, lmdbOpts = undefined) => (
   db: any
 ) => {
-  const lmdb = (Gun.lmdb = db.lmdb = new GunLmdbClient(Gun, lmdbOpts))
+  const lmdb = (Gun.lmdb = db.lmdb = new GunHttpClient(Gun, lmdbOpts))
 
   db.onIn(async function gunLmdbAcceptWrites(msg: any) {
     if (msg.fromCluster || !msg.json.put) return msg
@@ -107,3 +100,4 @@ export const acceptWrites = (Gun: any, { disableRelay = false } = {}, lmdbOpts =
 
   return db
 }
+*/
