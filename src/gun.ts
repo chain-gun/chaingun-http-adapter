@@ -16,7 +16,7 @@ export const attachToGun = (Gun: any, options?: any) => {
 
     function receive(msg: any) {
       try {
-        db.on('in', JSON.parse(msg.data || msg))
+        db.on('in', { ...JSON.parse(msg.data || msg), from: 'websocket' })
       } catch (e) {
         console.error('Websocket error', e.stack || e)
       }
@@ -54,6 +54,7 @@ export const attachToGun = (Gun: any, options?: any) => {
         db.on('in', {
           '@': dedupId,
           put: null,
+          from: 'http',
           err
         })
       }
@@ -61,7 +62,7 @@ export const attachToGun = (Gun: any, options?: any) => {
 
     db.on('put', async function(this: any, request: GunPut) {
       this.to.next(request)
-      if (!request || request.from === 'http') return
+      if (!request || request.from === 'http' || request.from === 'websocket') return
       for (let i = 0; i < sockets.length; i++) {
         try {
           sockets[i].send(JSON.stringify(request))

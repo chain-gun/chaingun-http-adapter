@@ -1,6 +1,6 @@
 {
   "name": "@notabug/gun-http",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "HTTP adapter for gun and gun-receiver",
   "keywords": [
     "gundb"
