@@ -62,7 +62,14 @@ export const attachToGun = (Gun: any, options?: any) => {
 
     db.on('put', async function(this: any, request: GunPut) {
       this.to.next(request)
-      if (!request || request.from === 'http' || request.from === 'websocket') return
+      if (
+        !request ||
+        request.from === 'http' ||
+        request.from === 'websocket' ||
+        request.from === 'local'
+      ) {
+        return
+      }
       for (let i = 0; i < sockets.length; i++) {
         try {
           sockets[i].send(JSON.stringify(request))
