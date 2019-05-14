@@ -39,6 +39,9 @@ export const attachToGun = (Gun: any, options?: any) => {
 
       try {
         const result = await http.get(soul)
+        const meta = function() {} as any
+        meta.faith = true
+
         db.on('in', {
           '@': dedupId,
           put: result
@@ -47,7 +50,8 @@ export const attachToGun = (Gun: any, options?: any) => {
               }
             : null,
           from: 'http',
-          err: null
+          err: null,
+          _: meta
         })
       } catch (err) {
         console.error('error', err.stack || err)
