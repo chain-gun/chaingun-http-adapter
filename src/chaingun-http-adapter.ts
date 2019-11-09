@@ -21,7 +21,7 @@ export async function get(
   baseUrl: string,
   soul: string
 ): Promise<GunNode | null> {
-  const url = `${baseUrl}/nodes/${soul}`;
+  const url = `${baseUrl}/nodes/${encodeURIComponent(soul)}`;
   const response = await fetch(url, fetchOpts);
 
   if (response.status === 404) {
