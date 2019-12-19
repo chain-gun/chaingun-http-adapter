@@ -1,4 +1,9 @@
-import { GunGraphAdapter, GunGraphData, GunNode } from '@chaingun/types';
+import {
+  GunGetOpts,
+  GunGraphAdapter,
+  GunGraphData,
+  GunNode
+} from '@chaingun/types';
 import 'isomorphic-fetch';
 
 const BASE_HEADERS = {
@@ -11,7 +16,8 @@ export function createGraphAdapter(
   fetchOpts: any = {}
 ): GunGraphAdapter {
   return {
-    get: (soul: string) => get(fetchOpts, baseUrl, soul),
+    get: (soul: string, opts?: GunGetOpts) =>
+      get(fetchOpts, baseUrl, soul, opts),
     put: (graphData: GunGraphData) => put(fetchOpts, baseUrl, graphData)
   };
 }
@@ -19,9 +25,14 @@ export function createGraphAdapter(
 export async function get(
   fetchOpts: any,
   baseUrl: string,
-  soul: string
+  soul: string,
+  opts?: GunGetOpts
 ): Promise<GunNode | null> {
-  const url = `${baseUrl}/nodes/${encodeURI(soul)}`;
+  const singleKey = opts && opts['.'];
+
+  const url = singleKey
+    ? `${baseUrl}/key/${encodeURI(singleKey)}/${encodeURI(soul)}`
+    : `${baseUrl}/nodes/${encodeURI(soul)}`;
   const response = await fetch(url, fetchOpts);
 
   if (response.status === 404) {
