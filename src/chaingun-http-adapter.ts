@@ -31,7 +31,7 @@ export async function get(
   const singleKey = opts && opts['.'];
 
   const url = singleKey
-    ? `${baseUrl}/key/${encodeURI(singleKey)}/${encodeURI(soul)}`
+    ? `${baseUrl}/key/${encodeURI(singleKey)}/from_node/${encodeURI(soul)}`
     : `${baseUrl}/nodes/${encodeURI(soul)}`;
   const response = await fetch(url, fetchOpts);
 
