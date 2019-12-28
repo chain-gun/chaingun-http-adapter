@@ -29,9 +29,19 @@ export async function get(
   opts?: GunGetOpts
 ): Promise<GunNode | null> {
   const singleKey = opts && opts['.'];
+  const fromLex = opts && opts['>'];
+  const toLex = opts && opts['<'];
 
   const url = singleKey
     ? `${baseUrl}/key/${encodeURI(singleKey)}/from_node/${encodeURI(soul)}`
+    : fromLex && toLex
+    ? `${baseUrl}/keys/from/${encodeURI(fromLex)}/to/${encodeURI(
+        toLex
+      )}/from_node/${encodeURI(soul)}`
+    : fromLex
+    ? `${baseUrl}/keys/from/${encodeURI(fromLex)}/from_node/${encodeURI(soul)}`
+    : toLex
+    ? `${baseUrl}/keys/to/${encodeURI(toLex)}/from_node/${encodeURI(soul)}`
     : `${baseUrl}/nodes/${encodeURI(soul)}`;
   const response = await fetch(url, fetchOpts);
 
