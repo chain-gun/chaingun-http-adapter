@@ -1,9 +1,11 @@
 import {
+  ChangeSetEntry,
   GunGetOpts,
   GunGraphAdapter,
   GunGraphData,
   GunNode
 } from '@chaingun/types';
+import EventSource from 'eventsource';
 import 'isomorphic-fetch';
 
 const BASE_HEADERS = {
@@ -18,6 +20,8 @@ export function createGraphAdapter(
   return {
     get: (soul: string, opts?: GunGetOpts) =>
       get(fetchOpts, baseUrl, soul, opts),
+    onChange: (handler: (change: ChangeSetEntry) => void, from?: string) =>
+      onChange(baseUrl, handler, from),
     put: (graphData: GunGraphData) => put(fetchOpts, baseUrl, graphData)
   };
 }
@@ -81,4 +85,22 @@ export async function put(
 
   const json = await response.json();
   return json || null;
+}
+
+export function onChange(
+  baseUrl: string,
+  handler: (change: ChangeSetEntry) => void,
+  from: string = ''
+): () => void {
+  const es = new EventSource(`${baseUrl}/changelog?lastId=${from}`);
+
+  // tslint:disable-next-line: no-object-mutation no-expression-statement
+  es.onmessage = e => {
+    const { data, lastEventId } = e;
+
+    // tslint:disable-next-line: no-expression-statement
+    handler([lastEventId, JSON.parse(data)]);
+  };
+
+  return () => es.close();
 }

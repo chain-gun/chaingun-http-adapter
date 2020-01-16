@@ -1,6 +1,6 @@
 {
   "name": "@chaingun/http-adapter",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "HTTP Graph Adapter for ChainGun",
   "main": "build/main/index.js",
   "typings": "build/main/index.d.ts",
@@ -51,8 +51,10 @@
     "node": ">=8.9"
   },
   "dependencies": {
-    "@chaingun/types": "^0.0.5",
+    "@chaingun/types": "^0.0.7",
+    "@types/eventsource": "^1.1.2",
     "@types/isomorphic-fetch": "^0.0.35",
+    "eventsource": "^1.0.7",
     "isomorphic-fetch": "^2.2.1"
   },
   "devDependencies": {
